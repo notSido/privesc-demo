@@ -1,0 +1,22 @@
+# Executables
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.out
+*.app
+
+# Build artifacts
+build/
+dist/
+bin/
+obj/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
