@@ -33,34 +33,63 @@ privesc_demo.exe
 ```
 
 ### Step 3: Watch the Magic
-- The program will find the vulnerable service
-- Modify its configuration to point to a malicious payload
-- Trigger the service to execute the payload as SYSTEM
-- A new SYSTEM command prompt will appear
-- Type `whoami` to see "nt authority\system"
+- The program identifies the vulnerable service (VulnDemoService)
+- Creates a batch file payload (payload.bat) that runs PowerShell commands
+- Modifies the service's binary path to point to the payload
+- Starts the service to trigger payload execution as SYSTEM
+- Creates a proof file at C:\SYSTEM_PRIVESC_PROOF.txt with SYSTEM user info
 
 ## What Actually Happens
 
 When you run the exploit as a standard user:
 
-1. **Reconnaissance** - Finds the vulnerable service with weak permissions
-2. **Exploitation** - Modifies the service binary path to point to a malicious payload
-3. **Execution** - Starts the service, triggering execution as SYSTEM
-4. **Proof** - Creates `C:\SYSTEM_PRIVESC_PROOF.txt` containing output from `whoami` and system info
+1. **Reconnaissance Phase**
+   - Displays current username and privilege level (Standard User)
+   - Identifies VulnDemoService as the target
+   - Verifies SERVICE_CHANGE_CONFIG permissions are available
 
-The proof file demonstrates that arbitrary code was executed with SYSTEM privileges, showing:
-- Current user (nt authority\system)
-- Timestamp of execution
-- Hostname
-- Network information
+2. **Payload Creation**
+   - Creates `payload.bat` in the current directory
+   - Batch file executes this PowerShell command:
+     ```powershell
+     $info = whoami
+     $info | Out-File -FilePath 'C:\SYSTEM_PRIVESC_PROOF.txt' -Encoding ASCII
+     'SYSTEM privilege escalation successful!' | Out-File -FilePath 'C:\SYSTEM_PRIVESC_PROOF.txt' -Append
+     'Timestamp: ' + (Get-Date) | Out-File -FilePath 'C:\SYSTEM_PRIVESC_PROOF.txt' -Append
+     'Hostname: ' + (hostname) | Out-File -FilePath 'C:\SYSTEM_PRIVESC_PROOF.txt' -Append
+     ```
+   - This proves SYSTEM access by writing `whoami` output with timestamp and hostname
 
-This is exactly how real privilege escalation attacks work - from standard user to complete system control.
+3. **Service Modification**
+   - Opens the vulnerable service with modification rights
+   - Changes the service binary path to: `cmd.exe /c "payload.bat"`
+   - This reconfigures what executable runs when the service starts
+
+4. **Trigger Execution**
+   - Starts the service, causing Windows to execute the modified binary path
+   - Service runs as NT AUTHORITY\SYSTEM, so payload executes with SYSTEM privileges
+   - Service errors are expected (it's not a real service executable)
+
+5. **Proof of Exploitation**
+   - Creates `C:\SYSTEM_PRIVESC_PROOF.txt` containing:
+     - "nt authority\system" (proving SYSTEM execution)
+     - Success message
+     - Timestamp
+     - Hostname
+   - Displays educational information about the attack
+
+This demonstrates exactly how real privilege escalation attacks work - from standard user to complete system control in seconds.
 
 ## Files
 
-- **privesc_demo.c** - The main exploit (run as standard user)
-- **setup_vulnerable_service.c** - Creates the vulnerable environment (run as admin)
-- **cleanup.c** - Removes the vulnerable service (run as admin if needed)
+- **privesc_demo.c** - The main exploit that demonstrates privilege escalation (run as standard user)
+- **setup_vulnerable_service.c** - Creates VulnDemoService with weak permissions (run as admin)
+- **cleanup.c** - Removes the vulnerable service and cleans up (run as admin)
+
+**Generated during execution:**
+- **payload.bat** - Batch file payload created by privesc_demo.c
+- **vuln_service.exe** - Dummy service executable created by setup_vulnerable_service.c
+- **C:\SYSTEM_PRIVESC_PROOF.txt** - Proof file demonstrating SYSTEM execution
 
 ## Key Teaching Points
 
