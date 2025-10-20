@@ -1,0 +1,41 @@
+flowchart TD
+      Start([User Runs privesc_demo.exe<br/>Standard User Context]) --> Banner["PrintBanner()<br/>Display Welcome"]
+
+      Banner --> CheckUser["PrintCurrentUser()<br/>Get Username & Check Privilege<br/>Verify: Standard User"]
+
+      CheckUser --> Check_Vuln["CheckServiceVulnerability()<br/>Query SCM for VulnDemoService"]
+
+      Check_Vuln --> Open_SCM["OpenSCManager<br/>Connect to Service Control Manager<br/>Privilege: SERVICE_QUERY_STATUS"]
+
+      Open_SCM --> Open_Svc["OpenService VulnDemoService<br/>Request: SERVICE_QUERY_CONFIG |<br/>SERVICE_CHANGE_CONFIG |<br/>SERVICE_START"]
+
+      Open_Svc --> Exploit["ExploitService<br/>Main Exploitation Function"]
+
+      Exploit --> Create_Payload["CreatePayload()<br/>Generate payload.bat in<br/>Current Directory<br/><br/>Content:<br/>@echo off<br/>powershell -Command<br/>whoami > SYSTEM_PRIVESC_PROOF.txt<br/>+ metadata"]
+
+      Create_Payload --> Change_Config["ChangeServiceConfig<br/>Modify Service Binary Path<br/>OLD: vuln_service.exe<br/>NEW: cmd.exe /c payload.bat<br/><br/>Key: SERVICE_CHANGE_CONFIG<br/>vulnerability allows this!"]
+
+      Change_Config --> Start_Svc["StartService VulnDemoService<br/>Trigger Service Startup<br/>Expected: Service not responding<br/>Actual: Our payload executing"]
+
+      Start_Svc --> SCM_Exec["Windows Service Manager<br/>Executes Command as:<br/>NT AUTHORITY SYSTEM<br/><br/>Command:<br/>cmd.exe /c payload.bat<br/><br/>⚠️ PRIVILEGE ESCALATION POINT"]
+
+      SCM_Exec --> Cmd_Exec["cmd.exe /c payload.bat<br/>Command Prompt Context:<br/>NT AUTHORITY SYSTEM<br/><br/>Executes: payload.bat"]
+
+      Cmd_Exec --> PS_Exec["powershell.exe -Command<br/>PowerShell Context:<br/>NT AUTHORITY SYSTEM<br/><br/>Runs: whoami & output"]
+
+      PS_Exec --> Write_File["Out-File to<br/>C:\\SYSTEM_PRIVESC_PROOF.txt<br/><br/>Written Content:<br/>nt authority\\system<br/>SYSTEM privilege escalation successful!<br/>Timestamp: [date/time]<br/>Hostname:[computer]"]
+
+      Write_File --> Sleep["Sleep 2 Seconds<br/>Allow Payload to Complete"]
+
+      Sleep --> Explain["ExplainTheAttack<br/>Educational Information:<br/>• How reconnaissance works<br/>• How exploitation works<br/>• Detection & Prevention"]
+
+      Explain --> End([Execution Complete<br/>Service Still Modified<br/>Proof File Created])
+
+      style Start fill:#ff6b6b
+      style SCM_Exec fill:#ff4444,color:#fff
+      style Cmd_Exec fill:#ff4444,color:#fff
+      style PS_Exec fill:#ff4444,color:#fff
+      style Write_File fill:#ff4444,color:#fff
+      style Change_Config fill:#ffd700,color:#000
+      style Open_Svc fill:#ffd700,color:#000
+      style End fill:#51cf66
